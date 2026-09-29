@@ -1,0 +1,702 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>明信片工坊 · 手绘卡通明信片</title>
+<style>
+  :root {
+    --bg: #f4efe6;
+    --bg-2: #faf7f0;
+    --panel: #fffdf8;
+    --line: #e7dfd0;
+    --text: #4a4036;
+    --muted: #9a8d7c;
+    --accent: #c98a4b;
+    --accent-2: #8a6a4f;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    min-height: 100vh;
+    font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+    color: var(--text);
+    background:
+      radial-gradient(1100px 520px at 85% -10%, rgba(201, 138, 75, 0.12), transparent 60%),
+      radial-gradient(900px 500px at 0% 110%, rgba(138, 106, 79, 0.10), transparent 60%),
+      var(--bg);
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+  }
+  header { text-align: center; margin-top: 8px; }
+  h1 {
+    font-size: clamp(28px, 5vw, 44px);
+    letter-spacing: 6px;
+    font-weight: 800;
+    color: var(--accent-2);
+  }
+  .subtitle { color: var(--muted); margin-top: 6px; font-size: 14px; letter-spacing: 2px; }
+
+  .app {
+    width: 100%; max-width: 1080px;
+    display: grid; grid-template-columns: 1fr; gap: 18px;
+  }
+  @media (min-width: 880px) { .app { grid-template-columns: 1.5fr 1fr; align-items: start; } }
+
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    padding: 18px;
+    box-shadow: 0 14px 40px rgba(122, 100, 70, 0.12);
+  }
+  .panel h2 {
+    font-size: 13px; letter-spacing: 3px; color: var(--muted);
+    margin-bottom: 14px; display: flex; align-items: center; gap: 8px;
+  }
+  .panel h2::before {
+    content: ""; width: 8px; height: 8px;
+    background: var(--accent); border-radius: 50%;
+  }
+
+  #dropzone {
+    border: 2px dashed var(--line); border-radius: 14px; min-height: 240px;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 14px; padding: 24px; text-align: center; cursor: pointer;
+    transition: border-color .2s, background .2s, transform .15s; background: var(--bg-2);
+  }
+  #dropzone:hover, #dropzone.drag { border-color: var(--accent); background: #fdf6ec; }
+  #dropzone.drag { transform: scale(1.01); }
+  .drop-icon {
+    width: 60px; height: 60px; display: grid; place-items: center; font-size: 28px;
+    border-radius: 50%; background: #fff; border: 1px solid var(--line);
+    box-shadow: 0 8px 20px rgba(201, 138, 75, 0.18);
+  }
+  #dropzone p { color: var(--muted); font-size: 14px; }
+  #dropzone .strong { color: var(--text); font-weight: 700; }
+
+  .btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    border: 1px solid var(--line); background: #fff; color: var(--text);
+    padding: 10px 16px; border-radius: 10px; font-size: 14px; font-weight: 600;
+    cursor: pointer; transition: transform .12s, box-shadow .12s, background .2s;
+  }
+  .btn:hover { transform: translateY(-2px); }
+  .btn.primary {
+    background: linear-gradient(90deg, #d99a5b, #c98a4b);
+    border-color: transparent; color: #fff;
+    box-shadow: 0 10px 24px rgba(201, 138, 75, 0.35);
+  }
+  .btn.ghost { background: transparent; }
+
+  .preview-wrap { display: none; }
+  .preview-wrap.active { display: block; }
+  .compare { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .compare .cell { text-align: center; }
+  .compare .cell img, .compare .cell canvas {
+    width: 100%; height: auto; border-radius: 10px;
+    border: 1px solid var(--line); background: #fff;
+  }
+  .compare .label {
+    display: block; margin-top: 8px; font-size: 12px;
+    letter-spacing: 2px; color: var(--muted);
+  }
+
+  .control { margin-bottom: 15px; }
+  .control .row { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 7px; }
+  .control label { font-size: 13px; color: var(--muted); letter-spacing: 1px; }
+  .control .val { font-weight: 800; color: var(--accent-2); font-variant-numeric: tabular-nums; }
+  input[type="range"] {
+    -webkit-appearance: none; appearance: none; width: 100%; height: 6px;
+    border-radius: 4px; background: linear-gradient(90deg, var(--accent-2), var(--accent)); outline: none;
+  }
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none; width: 18px; height: 18px; border-radius: 50%;
+    background: #fff; border: 3px solid var(--accent); cursor: pointer;
+    box-shadow: 0 0 10px rgba(201, 138, 75, 0.5);
+  }
+  input[type="range"]::-moz-range-thumb {
+    width: 18px; height: 18px; border-radius: 50%;
+    background: #fff; border: 3px solid var(--accent); cursor: pointer;
+  }
+  select, input[type="text"] {
+    width: 100%; padding: 10px 12px; border-radius: 10px; background: #fff;
+    color: var(--text); border: 1px solid var(--line); font-size: 14px; outline: none;
+  }
+  select:focus, input[type="text"]:focus { border-color: var(--accent); }
+  .actions { display: flex; gap: 10px; }
+  .actions .btn { flex: 1; justify-content: center; }
+  .hint { font-size: 12px; color: var(--muted); margin-top: 12px; line-height: 1.7; }
+  footer { color: var(--muted); font-size: 12px; text-align: center; opacity: .8; }
+  #fileInput { display: none; }
+  .section-note { font-size: 11px; color: var(--muted); margin: -8px 0 12px; letter-spacing: 1px; }
+</style>
+</head>
+<body>
+  <header>
+    <h1>明信片工坊</h1>
+    <p class="subtitle">上传照片 · 一键变成手绘卡通风格的明信片 · 全本地处理</p>
+  </header>
+
+  <div class="app">
+    <!-- Left -->
+    <div>
+      <div class="panel" id="uploadPanel">
+        <div id="dropzone">
+          <div class="drop-icon">🖼️</div>
+          <p><span class="strong">点击选择</span> 或 把照片拖到这里</p>
+          <p>支持 JPG / PNG / WebP / GIF</p>
+        </div>
+        <input type="file" id="fileInput" accept="image/*" />
+      </div>
+
+      <div class="panel preview-wrap" id="previewPanel">
+        <h2>预览对比</h2>
+        <div class="compare">
+          <div class="cell">
+            <img id="originalImg" alt="原图" />
+            <span class="label">原图</span>
+          </div>
+          <div class="cell">
+            <canvas id="outputCanvas"></canvas>
+            <span class="label">手绘明信片</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right -->
+    <div class="panel">
+      <h2>绘画风格</h2>
+
+      <div class="control">
+        <div class="row">
+          <label for="flatten">色块平滑</label>
+          <span class="val" id="flattenVal">60</span>
+        </div>
+        <input type="range" id="flatten" min="0" max="100" step="1" value="60" />
+      </div>
+
+      <div class="control">
+        <div class="row">
+          <label for="levels">颜色数量</label>
+          <span class="val" id="levelsVal">12</span>
+        </div>
+        <input type="range" id="levels" min="4" max="24" step="1" value="12" />
+      </div>
+
+      <div class="control">
+        <div class="row">
+          <label for="outline">轮廓描边</label>
+          <span class="val" id="outlineVal">40</span>
+        </div>
+        <input type="range" id="outline" min="0" max="100" step="1" value="40" />
+      </div>
+
+      <div class="control">
+        <div class="row">
+          <label for="saturation">饱和度</label>
+          <span class="val" id="saturationVal">70%</span>
+        </div>
+        <input type="range" id="saturation" min="50" max="150" step="1" value="70" />
+      </div>
+
+      <div class="control">
+        <div class="row">
+          <label for="warmth">暖色调</label>
+          <span class="val" id="warmthVal">35</span>
+        </div>
+        <input type="range" id="warmth" min="0" max="100" step="1" value="35" />
+      </div>
+
+      <div class="control">
+        <div class="row">
+          <label for="colormatch">示范图配色</label>
+          <span class="val" id="colormatchVal">70</span>
+        </div>
+        <input type="range" id="colormatch" min="0" max="100" step="1" value="70" />
+      </div>
+
+      <h2 style="margin-top:6px;">明信片排版</h2>
+
+      <div class="control">
+        <div class="row">
+          <label for="vignette">白色光晕</label>
+          <span class="val" id="vignetteVal">50</span>
+        </div>
+        <input type="range" id="vignette" min="0" max="100" step="1" value="50" />
+      </div>
+
+      <div class="control">
+        <div class="row">
+          <label for="border">边框宽度</label>
+          <span class="val" id="borderVal">3.2%</span>
+        </div>
+        <input type="range" id="border" min="0" max="8" step="0.1" value="3.2" />
+      </div>
+
+      <div class="control">
+        <div class="row"><label for="aspect">画面比例</label></div>
+        <select id="aspect">
+          <option value="original" selected>跟随原图</option>
+          <option value="1.7778">16:9 横版</option>
+          <option value="1.3333">4:3 横版</option>
+          <option value="1">1:1 方形</option>
+          <option value="0.75">3:4 竖版</option>
+        </select>
+      </div>
+
+      <div class="control">
+        <div class="row"><label for="caption">主文字（可留空）</label></div>
+        <input type="text" id="caption" placeholder="例如：杭州 · 西湖" />
+      </div>
+
+      <div class="control">
+        <div class="row"><label for="date">日期 / 小字（可留空）</label></div>
+        <input type="text" id="date" placeholder="例如：2024.08.01" />
+      </div>
+
+      <div class="actions">
+        <button class="btn primary" id="downloadBtn">⬇ 下载 PNG</button>
+        <button class="btn ghost" id="resetBtn">↺ 换一张</button>
+      </div>
+
+      <p class="hint">
+        提示：色块平滑 = 油画笔触强度；「示范图配色」会把照片的颜色基调拉到你示范图那套暖柔色调，想更接近就调高它。
+      </p>
+    </div>
+  </div>
+
+  <footer>明信片工坊 · 图片仅在浏览器本地处理，不会上传到任何服务器</footer>
+
+<script>
+(function () {
+  "use strict";
+
+  const fileInput = document.getElementById("fileInput");
+  const dropzone = document.getElementById("dropzone");
+  const originalImg = document.getElementById("originalImg");
+  const outputCanvas = document.getElementById("outputCanvas");
+  const previewPanel = document.getElementById("previewPanel");
+  const flattenEl = document.getElementById("flatten");
+  const flattenVal = document.getElementById("flattenVal");
+  const levelsEl = document.getElementById("levels");
+  const levelsVal = document.getElementById("levelsVal");
+  const outlineEl = document.getElementById("outline");
+  const outlineVal = document.getElementById("outlineVal");
+  const saturationEl = document.getElementById("saturation");
+  const saturationVal = document.getElementById("saturationVal");
+  const warmthEl = document.getElementById("warmth");
+  const warmthVal = document.getElementById("warmthVal");
+  const colormatchEl = document.getElementById("colormatch");
+  const colormatchVal = document.getElementById("colormatchVal");
+  const vignetteEl = document.getElementById("vignette");
+  const vignetteVal = document.getElementById("vignetteVal");
+  const borderEl = document.getElementById("border");
+  const borderVal = document.getElementById("borderVal");
+  const aspectEl = document.getElementById("aspect");
+  const captionEl = document.getElementById("caption");
+  const dateEl = document.getElementById("date");
+  const downloadBtn = document.getElementById("downloadBtn");
+  const resetBtn = document.getElementById("resetBtn");
+
+  const PHOTO_MAX = 1800;
+  const FRAME_COLOR = [253, 254, 249];
+  const INK_COLOR = [89, 89, 83];
+  const SERIF = '"STZhongsong","Songti SC","SimSun","Noto Serif CJK SC",Georgia,serif';
+  // Inverse-CDF colour-matching tables extracted from the user's reference postcard.
+  const REF_INV_R = [34,51,61,69,76,81,86,91,95,98,101,104,107,109,111,113,115,117,118,120,121,123,124,125,127,128,129,130,131,132,134,135,136,137,138,139,140,141,142,142,143,144,145,146,147,148,149,150,151,152,152,153,154,155,156,157,158,159,160,161,162,162,163,164,165,166,167,168,169,170,171,172,173,174,175,175,176,177,178,179,180,181,182,183,184,185,186,187,188,189,190,191,192,193,194,195,196,197,198,199,200,201,201,202,203,204,205,206,206,207,208,209,210,210,211,212,212,213,214,215,215,216,217,218,218,219,220,220,221,222,222,223,224,224,225,226,226,227,227,228,228,229,229,230,230,231,231,232,232,232,233,233,233,234,234,235,235,235,236,236,237,237,237,238,238,239,239,240,240,240,241,241,242,242,243,243,244,245,245,246,246,247,247,248,248,249,249,249,250,250,250,251,251,251,251,251,252,252,252,252,252,253,253,253,253,253,253,253,253,253,253,253,253,253,253,253,253,253,253,253,254,254,254,254,254,254,254,254,254,254,254,254,254,254,254,254,254,254,254,254,254,254,254,254,254,254,254,254,254,255,255,255,255,255,255,255];
+  const REF_INV_G = [35,51,62,70,77,83,88,93,97,100,104,106,109,112,114,116,118,120,122,124,125,127,129,130,131,133,134,136,137,138,139,141,142,143,144,145,146,147,148,149,150,152,153,154,154,155,156,157,158,159,160,161,162,163,164,165,166,166,167,168,169,170,171,172,172,173,174,175,176,177,177,178,179,180,181,182,183,184,185,185,186,187,188,189,190,191,192,193,194,196,197,198,199,200,201,201,202,203,204,205,206,207,208,208,209,210,211,211,212,213,214,214,215,216,217,217,218,219,220,220,221,222,223,223,224,225,226,226,227,228,228,229,229,230,230,231,232,232,233,233,233,234,234,235,235,235,236,236,237,237,237,238,238,238,239,239,239,240,240,240,241,241,241,242,242,243,243,243,244,244,244,245,245,245,246,246,247,247,248,248,248,249,249,249,250,250,250,251,251,251,251,252,252,252,252,252,253,253,253,253,253,253,253,253,253,254,254,254,254,254,254,254,254,254,254,254,254,254,254,254,254,254,254,254,254,254,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255];
+  const REF_INV_B = [20,36,46,54,61,67,72,76,80,84,87,89,92,94,96,98,99,101,103,104,106,107,108,110,111,112,113,114,115,117,118,119,120,121,122,123,124,124,125,126,127,128,129,130,131,132,133,134,135,136,137,138,138,139,140,141,142,143,144,146,147,148,149,150,151,152,153,155,156,157,158,159,161,162,164,165,166,168,170,171,173,174,176,178,179,181,183,184,186,188,189,191,192,193,195,196,197,198,199,200,201,202,202,203,204,205,206,206,207,208,208,209,210,211,211,212,213,213,214,215,215,216,217,217,218,218,219,220,220,221,221,222,222,223,223,224,224,225,225,226,226,226,227,227,228,228,228,229,229,230,230,230,231,231,231,232,232,232,233,233,233,234,234,234,235,235,236,236,236,237,237,237,238,238,239,239,239,240,240,241,241,242,242,242,243,243,244,244,244,245,245,245,245,246,246,246,246,246,247,247,247,247,247,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,249,249,249,249,249,249,249,249,249,249,249,249,249,249,249,249,249,249,249,249,249,249,249,250,250,250,250,250,250,250,250,250,250,251,251,251,254];
+  const REF_INV = [REF_INV_R, REF_INV_G, REF_INV_B];
+
+  let sourceImage = null;
+  let renderTimer = null;
+  let busy = false;
+
+  function coverCrop(srcW, srcH, dstW, dstH) {
+    const s = Math.max(dstW / srcW, dstH / srcH);
+    const sw = dstW / s, sh = dstH / s;
+    return { sx: (srcW - sw) / 2, sy: (srcH - sh) / 2, sw, sh };
+  }
+
+  function clamp255(v) {
+    return v < 0 ? 0 : (v > 255 ? 255 : v);
+  }
+
+  function makeCanvas(w, h) {
+    const c = document.createElement("canvas");
+    c.width = w; c.height = h;
+    return c;
+  }
+
+  // ---- Stylize: saturation / warmth, then flat-color quantization ----
+  function stylize(imgData, levels, saturation, warmth) {
+    const d = imgData.data;
+    const step = 256 / levels;
+    const sat = saturation / 100;
+    const warm = warmth / 100;
+    for (let i = 0; i < d.length; i += 4) {
+      let r = d[i], g = d[i + 1], b = d[i + 2];
+      // saturation
+      const lum = 0.299 * r + 0.587 * g + 0.114 * b;
+      r = lum + (r - lum) * sat;
+      g = lum + (g - lum) * sat;
+      b = lum + (b - lum) * sat;
+      // warmth
+      r += warm * 16;
+      g += warm * 5;
+      b -= warm * 12;
+      // flat quantization
+      r = Math.round(Math.round(r / step) * step);
+      g = Math.round(Math.round(g / step) * step);
+      b = Math.round(Math.round(b / step) * step);
+      d[i] = clamp255(r); d[i + 1] = clamp255(g); d[i + 2] = clamp255(b);
+    }
+  }
+
+  // ---- Sobel edge magnitude from the ORIGINAL (pre-blur) image ----
+  function sobel(data, w, h) {
+    const gray = new Float32Array(w * h);
+    for (let i = 0, p = 0; i < data.length; i += 4, p++) {
+      gray[p] = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
+    }
+    const mag = new Float32Array(w * h);
+    let max = 1;
+    for (let y = 1; y < h - 1; y++) {
+      const r0 = (y - 1) * w, r1 = y * w, r2 = (y + 1) * w;
+      for (let x = 1; x < w - 1; x++) {
+        const gx = (gray[r0 + x - 1] + 2 * gray[r1 + x - 1] + gray[r2 + x - 1])
+                 - (gray[r0 + x + 1] + 2 * gray[r1 + x + 1] + gray[r2 + x + 1]);
+        const gy = (gray[r0 + x - 1] + 2 * gray[r0 + x] + gray[r0 + x + 1])
+                 - (gray[r2 + x - 1] + 2 * gray[r2 + x] + gray[r2 + x + 1]);
+        const m = Math.sqrt(gx * gx + gy * gy);
+        mag[r1 + x] = m;
+        if (m > max) max = m;
+      }
+    }
+    return { mag, max };
+  }
+
+  // Kuwahara filter — classic "oil painting" edge-preserving flattening.
+  function kuwahara(data, w, h, r) {
+    const n = w * h;
+    const A = new Float64Array(n), B = new Float64Array(n), C = new Float64Array(n);
+    for (let i = 0, p = 0; i < data.length; i += 4, p++) {
+      A[p] = data[i]; B[p] = data[i + 1]; C[p] = data[i + 2];
+    }
+    const W1 = w + 1;
+    function buildSAT(arr) {
+      const s = new Float64Array(W1 * (h + 1));
+      for (let y = 0; y < h; y++) {
+        let row = 0;
+        const ay = y * w, sy = y * W1, sy1 = (y + 1) * W1;
+        for (let x = 0; x < w; x++) {
+          row += arr[ay + x];
+          s[sy1 + x + 1] = s[sy + x + 1] + row;
+        }
+      }
+      return s;
+    }
+    const satR = buildSAT(A), satG = buildSAT(B), satB = buildSAT(C);
+    for (let i = 0; i < n; i++) { const a = A[i]; A[i] = a * a; const b = B[i]; B[i] = b * b; const c = C[i]; C[i] = c * c; }
+    const satR2 = buildSAT(A), satG2 = buildSAT(B), satB2 = buildSAT(C);
+
+    const out = new Uint8ClampedArray(data.length);
+    for (let y = 0; y < h; y++) {
+      const Y0 = Math.max(0, y - r), Y1 = Math.min(h - 1, y + r);
+      const y0s = Y0 * W1, y1s = (Y1 + 1) * W1;
+      for (let x = 0; x < w; x++) {
+        const X0 = Math.max(0, x - r), X1 = Math.min(w - 1, x + r);
+        const di = (y * w + x) * 4;
+        let bestVar = Infinity, br = 0, bg = 0, bb = 0;
+        // four quadrants split at (x, y)
+        for (let qi = 0; qi < 4; qi++) {
+          const qx0 = qi & 1 ? x : X0;
+          const qx1 = qi & 1 ? X1 : x;
+          const qy0 = qi & 2 ? y : Y0;
+          const qy1 = qi & 2 ? Y1 : y;
+          const area = (qx1 - qx0 + 1) * (qy1 - qy0 + 1);
+          const x0 = qx0, x1 = qx1 + 1;
+          const r0 = qy0 * W1, r1 = qy1 * W1 + W1;
+          const sR = satR[r1 + x1] - satR[r0 + x1] - satR[r1 + x0] + satR[r0 + x0];
+          const sG = satG[r1 + x1] - satG[r0 + x1] - satG[r1 + x0] + satG[r0 + x0];
+          const sB = satB[r1 + x1] - satB[r0 + x1] - satB[r1 + x0] + satB[r0 + x0];
+          const sR2 = satR2[r1 + x1] - satR2[r0 + x1] - satR2[r1 + x0] + satR2[r0 + x0];
+          const sG2 = satG2[r1 + x1] - satG2[r0 + x1] - satG2[r1 + x0] + satG2[r0 + x0];
+          const sB2 = satB2[r1 + x1] - satB2[r0 + x1] - satB2[r1 + x0] + satB2[r0 + x0];
+          const mr = sR / area, mg = sG / area, mb = sB / area;
+          const vr = sR2 / area - mr * mr;
+          const vg = sG2 / area - mg * mg;
+          const vb = sB2 / area - mb * mb;
+          const v = vr + vg + vb;
+          if (v < bestVar) { bestVar = v; br = mr; bg = mg; bb = mb; }
+        }
+        out[di] = br; out[di + 1] = bg; out[di + 2] = bb; out[di + 3] = 255;
+      }
+    }
+    return out;
+  }
+
+  // Histogram matching against the reference postcard palette.
+  function colorMatch(data, w, h, mix) {
+    if (mix <= 0) return;
+    const hist0 = new Float32Array(256), hist1 = new Float32Array(256), hist2 = new Float32Array(256);
+    for (let i = 0; i < data.length; i += 4) {
+      hist0[data[i]]++; hist1[data[i + 1]]++; hist2[data[i + 2]]++;
+    }
+    const map0 = new Uint8Array(256), map1 = new Uint8Array(256), map2 = new Uint8Array(256);
+    const inv0 = REF_INV[0], inv1 = REF_INV[1], inv2 = REF_INV[2];
+    const scale = 255 / (w * h);
+    let c0 = 0, c1 = 0, c2 = 0;
+    for (let v = 0; v < 256; v++) {
+      c0 += hist0[v]; c1 += hist1[v]; c2 += hist2[v];
+      map0[v] = inv0[Math.min(255, Math.round(c0 * scale))];
+      map1[v] = inv1[Math.min(255, Math.round(c1 * scale))];
+      map2[v] = inv2[Math.min(255, Math.round(c2 * scale))];
+    }
+    for (let i = 0; i < data.length; i += 4) {
+      data[i]     += (map0[data[i]]     - data[i])     * mix;
+      data[i + 1] += (map1[data[i + 1]] - data[i + 1]) * mix;
+      data[i + 2] += (map2[data[i + 2]] - data[i + 2]) * mix;
+    }
+  }
+
+  function buildEdgeCanvas(mag, max, w, h, strength) {
+    const c = makeCanvas(w, h);
+    const ctx = c.getContext("2d");
+    const img = ctx.createImageData(w, h);
+    const d = img.data;
+    const low = 0.16, high = 0.6;
+    for (let p = 0; p < w * h; p++) {
+      const n = mag[p] / max;
+      let a = 0;
+      if (n > low) {
+        a = (n - low) / (high - low);
+        if (a > 1) a = 1;
+        a *= strength / 100;
+      }
+      const j = p * 4;
+      d[j] = 52; d[j + 1] = 48; d[j + 2] = 42; // warm dark grey
+      d[j + 3] = Math.round(a * 255);
+    }
+    ctx.putImageData(img, 0, 0);
+    return c;
+  }
+
+  function renderPostcard() {
+    if (!sourceImage || busy) return;
+    busy = true;
+
+    try {
+      const flatten = parseInt(flattenEl.value, 10) / 100;
+      const levels = parseInt(levelsEl.value, 10);
+      const outline = parseInt(outlineEl.value, 10);
+      const saturation = parseInt(saturationEl.value, 10);
+      const warmth = parseInt(warmthEl.value, 10);
+      const colorMatchMix = parseInt(colormatchEl.value, 10) / 100;
+      const vignette = parseInt(vignetteEl.value, 10) / 100;
+      const borderPct = parseFloat(borderEl.value) / 100;
+
+      let targetAspect;
+      if (aspectEl.value === "original") {
+        targetAspect = sourceImage.naturalWidth / sourceImage.naturalHeight;
+      } else {
+        targetAspect = parseFloat(aspectEl.value);
+      }
+
+      let photoW, photoH;
+      if (targetAspect >= 1) {
+        photoW = PHOTO_MAX;
+        photoH = Math.max(1, Math.round(PHOTO_MAX / targetAspect));
+      } else {
+        photoH = PHOTO_MAX;
+        photoW = Math.max(1, Math.round(PHOTO_MAX * targetAspect));
+      }
+
+      // --- draw original at full res (for crisp edges) ---
+      const crop = coverCrop(sourceImage.naturalWidth, sourceImage.naturalHeight, photoW, photoH);
+      const orig = makeCanvas(photoW, photoH);
+      const octx = orig.getContext("2d", { willReadFrequently: true });
+      octx.drawImage(sourceImage, crop.sx, crop.sy, crop.sw, crop.sh, 0, 0, photoW, photoH);
+
+      // --- color layer: downscale, edge-preserving median flatten, quantize, upscale ---
+      const WORK_MAX = 900;
+      const ws = Math.min(1, WORK_MAX / Math.max(photoW, photoH));
+      const ww = Math.max(2, Math.round(photoW * ws));
+      const wh = Math.max(2, Math.round(photoH * ws));
+      const work = makeCanvas(ww, wh);
+      const wctx = work.getContext("2d", { willReadFrequently: true });
+      wctx.drawImage(orig, 0, 0, ww, wh);
+      const wdata = wctx.getImageData(0, 0, ww, wh);
+
+      const kuwR = flatten <= 0.02 ? 0 : (flatten < 0.34 ? 1 : (flatten < 0.67 ? 2 : 3));
+      if (kuwR > 0) {
+        const kuw = kuwahara(wdata.data, ww, wh, kuwR);
+        wdata.data.set(kuw);
+      }
+      colorMatch(wdata.data, ww, wh, colorMatchMix);
+      stylize(wdata, levels, saturation, warmth);
+      wctx.putImageData(wdata, 0, 0);
+
+      const smooth = makeCanvas(photoW, photoH);
+      const sctx = smooth.getContext("2d");
+      sctx.imageSmoothingEnabled = true;
+      sctx.imageSmoothingQuality = "high";
+      sctx.drawImage(work, 0, 0, photoW, photoH);
+
+      // --- cartoon outlines, detected on the flattened colour layer ---
+      let edgeCanvas = null;
+      if (outline > 0) {
+        const sd = sctx.getImageData(0, 0, photoW, photoH);
+        const em = sobel(sd.data, photoW, photoH);
+        edgeCanvas = buildEdgeCanvas(em.mag, em.max, photoW, photoH, outline);
+      }
+
+      // --- white vignette ---
+      if (vignette > 0) {
+        const g = sctx.createRadialGradient(
+          photoW / 2, photoH / 2, Math.min(photoW, photoH) * 0.25,
+          photoW / 2, photoH / 2, Math.hypot(photoW, photoH) / 2
+        );
+        const a = 0.9 * vignette;
+        g.addColorStop(0, "rgba(253,254,249,0)");
+        g.addColorStop(0.6, "rgba(253,254,249," + (a * 0.3).toFixed(3) + ")");
+        g.addColorStop(1, "rgba(253,254,249," + a.toFixed(3) + ")");
+        sctx.fillStyle = g;
+        sctx.fillRect(0, 0, photoW, photoH);
+      }
+
+      // --- edges (cartoon outlines) ---
+      const photo = makeCanvas(photoW, photoH);
+      const pctx = photo.getContext("2d");
+      pctx.drawImage(smooth, 0, 0);
+      if (edgeCanvas) pctx.drawImage(edgeCanvas, 0, 0);
+
+      // --- subtle paper grain ---
+      pctx.globalAlpha = 0.04;
+      pctx.globalCompositeOperation = "overlay";
+      const grain = makeGrain(Math.min(256, Math.max(96, Math.round(photoW / 7))));
+      pctx.fillStyle = pctx.createPattern(grain, "repeat");
+      pctx.fillRect(0, 0, photoW, photoH);
+      pctx.globalAlpha = 1;
+      pctx.globalCompositeOperation = "source-over";
+
+      // --- compose card ---
+      const base = Math.round(borderPct * Math.min(photoW, photoH));
+      const top = base;
+      const bottom = Math.round(base * 1.8);
+      const left = Math.round(base * 1.5);
+      const right = left;
+      const cardW = photoW + left + right;
+      const cardH = photoH + top + bottom;
+
+      outputCanvas.width = cardW;
+      outputCanvas.height = cardH;
+      const cctx = outputCanvas.getContext("2d");
+      cctx.fillStyle = "rgb(" + FRAME_COLOR[0] + "," + FRAME_COLOR[1] + "," + FRAME_COLOR[2] + ")";
+      cctx.fillRect(0, 0, cardW, cardH);
+      cctx.drawImage(photo, left, top);
+
+      // caption
+      const mainText = captionEl.value.trim();
+      const dateText = dateEl.value.trim();
+      if (mainText || dateText) {
+        cctx.textAlign = "center";
+        cctx.fillStyle = "rgb(" + INK_COLOR[0] + "," + INK_COLOR[1] + "," + INK_COLOR[2] + ")";
+        const mainSize = Math.max(16, Math.round(base * 0.85));
+        const dateSize = Math.max(12, Math.round(mainSize * 0.55));
+        if (mainText && dateText) {
+          cctx.font = mainSize + "px " + SERIF;
+          cctx.fillText(mainText, cardW / 2, cardH - bottom * 0.62);
+          cctx.font = dateSize + "px " + SERIF;
+          cctx.fillText(dateText, cardW / 2, cardH - bottom * 0.62 + mainSize * 1.25);
+        } else {
+          const t = mainText || dateText;
+          const fs = mainText ? mainSize : dateSize;
+          cctx.font = fs + "px " + SERIF;
+          cctx.fillText(t, cardW / 2, cardH - bottom * 0.5);
+        }
+      }
+    } finally {
+      busy = false;
+    }
+  }
+
+  function makeGrain(size) {
+    const g = makeCanvas(size, size);
+    const gctx = g.getContext("2d");
+    const img = gctx.createImageData(size, size);
+    const d = img.data;
+    for (let i = 0; i < d.length; i += 4) {
+      const v = 110 + (Math.random() * 100 | 0);
+      d[i] = v; d[i + 1] = v; d[i + 2] = v; d[i + 3] = 255;
+    }
+    gctx.putImageData(img, 0, 0);
+    return g;
+  }
+
+  function loadImage(file) {
+    if (!file || !file.type.startsWith("image/")) { alert("请选择一张图片文件"); return; }
+    const reader = new FileReader();
+    reader.onload = function (e) {
+      const img = new Image();
+      img.onload = function () {
+        sourceImage = img;
+        originalImg.src = e.target.result;
+        previewPanel.classList.add("active");
+        requestAnimationFrame(renderPostcard);
+      };
+      img.onerror = function () { alert("图片加载失败，请换一张试试"); };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  }
+
+  dropzone.addEventListener("click", () => fileInput.click());
+  fileInput.addEventListener("change", (e) => { if (e.target.files.length) loadImage(e.target.files[0]); });
+  ["dragover", "dragenter"].forEach((ev) => dropzone.addEventListener(ev, (e) => { e.preventDefault(); dropzone.classList.add("drag"); }));
+  ["dragleave", "drop"].forEach((ev) => dropzone.addEventListener(ev, (e) => { e.preventDefault(); dropzone.classList.remove("drag"); }));
+  dropzone.addEventListener("drop", (e) => { if (e.dataTransfer.files.length) loadImage(e.dataTransfer.files[0]); });
+
+  function scheduleRender() {
+    if (renderTimer) clearTimeout(renderTimer);
+    renderTimer = setTimeout(renderPostcard, 80);
+  }
+
+  flattenEl.addEventListener("input", () => { flattenVal.textContent = flattenEl.value; scheduleRender(); });
+  levelsEl.addEventListener("input", () => { levelsVal.textContent = levelsEl.value; scheduleRender(); });
+  outlineEl.addEventListener("input", () => { outlineVal.textContent = outlineEl.value; scheduleRender(); });
+  saturationEl.addEventListener("input", () => { saturationVal.textContent = saturationEl.value + "%"; scheduleRender(); });
+  warmthEl.addEventListener("input", () => { warmthVal.textContent = warmthEl.value; scheduleRender(); });
+  colormatchEl.addEventListener("input", () => { colormatchVal.textContent = colormatchEl.value; scheduleRender(); });
+  vignetteEl.addEventListener("input", () => { vignetteVal.textContent = vignetteEl.value; scheduleRender(); });
+  borderEl.addEventListener("input", () => { borderVal.textContent = parseFloat(borderEl.value).toFixed(1) + "%"; scheduleRender(); });
+  aspectEl.addEventListener("change", scheduleRender);
+  captionEl.addEventListener("input", scheduleRender);
+  dateEl.addEventListener("input", scheduleRender);
+
+  downloadBtn.addEventListener("click", () => {
+    if (!sourceImage) return;
+    renderPostcard();
+    const link = document.createElement("a");
+    link.download = "postcard.png";
+    link.href = outputCanvas.toDataURL("image/png");
+    link.click();
+  });
+  resetBtn.addEventListener("click", () => { fileInput.value = ""; fileInput.click(); });
+
+  flattenVal.textContent = flattenEl.value;
+  levelsVal.textContent = levelsEl.value;
+  outlineVal.textContent = outlineEl.value;
+  saturationVal.textContent = saturationEl.value + "%";
+  warmthVal.textContent = warmthEl.value;
+  colormatchVal.textContent = colormatchEl.value;
+  vignetteVal.textContent = vignetteEl.value;
+  borderVal.textContent = parseFloat(borderEl.value).toFixed(1) + "%";
+})();
+</script>
+</body>
+</html>
